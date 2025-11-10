@@ -110,21 +110,55 @@ fun AdminFeature(mainNavController: NavHostController) {
 @Composable
 private fun AdminHomeScreen(navController: NavController, mainNavController: NavHostController) {
     val context = LocalContext.current
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text("Panel de Administración", style = MaterialTheme.typography.headlineLarge)
+    val orderRepository = remember { OrderRepository((context.applicationContext as MyApp).database.orderDao()) }
+    val orders by orderRepository.getAllOrders().collectAsState(initial = emptyList())
+
+    val (totalSales, pendingOrders) = remember(orders) {
+        val total = orders.sumOf { it.order.total }
+        val pending = orders.count { it.order.status != OrderStatus.ENTREGADO.name }
+        Pair(total, pending)
+    }
+
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Panel de Administración", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Spacer(Modifier.height(24.dp))
+
+        SalesSummaryCard(totalSales = totalSales, pendingOrders = pendingOrders)
+
         Spacer(Modifier.height(32.dp))
+
         Button(onClick = { navController.navigate("adminProducts") }, modifier = Modifier.fillMaxWidth()) { Text("Gestionar Productos") }
         Button(onClick = { navController.navigate("adminEvents") }, modifier = Modifier.fillMaxWidth()) { Text("Gestionar Eventos") }
         Button(onClick = { navController.navigate("adminRewards") }, modifier = Modifier.fillMaxWidth()) { Text("Gestionar Recompensas") }
         Button(onClick = { navController.navigate("adminOrders") }, modifier = Modifier.fillMaxWidth()) { Text("Gestionar Pedidos") }
         Button(onClick = { navController.navigate("adminUsers") }, modifier = Modifier.fillMaxWidth()) { Text("Gestionar Usuarios") }
+
         Spacer(Modifier.weight(1f))
+
         Button(onClick = {
             context.getSharedPreferences("user", Context.MODE_PRIVATE).edit().clear().apply()
             mainNavController.navigate("login") { popUpTo(mainNavController.graph.id) { inclusive = true } }
         }, modifier = Modifier.fillMaxWidth()) { Text("Cerrar Sesión") }
     }
 }
+
+@Composable
+private fun SalesSummaryCard(totalSales: Double, pendingOrders: Int) {
+    val formatter = remember { NumberFormat.getCurrencyInstance(Locale("es", "CL")) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Resumen de Ventas", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            Text("Total Vendido: ${formatter.format(totalSales)}", style = MaterialTheme.typography.bodyLarge)
+            Text("Pedidos Pendientes: $pendingOrders", style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
 
 // --- TITLE HELPER ---
 private fun getAdminScreenTitle(route: String?): String {
@@ -215,21 +249,21 @@ private fun ProductEditScreen(navController: NavController, productCode: String?
         OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Precio") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = quantity, onValueChange = { quantity = it }, label = { Text("Stock") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth().height(100.dp))
-        
+
         Spacer(Modifier.height(24.dp))
 
         Button(onClick = {
             val newOrUpdatedProduct = Product(
                 code = code,
-                name = name, 
-                category = category, 
-                price = price.toIntOrNull() ?: 0, 
-                quantity = quantity.toIntOrNull() ?: 0, 
+                name = name,
+                category = category,
+                price = price.toIntOrNull() ?: 0,
+                quantity = quantity.toIntOrNull() ?: 0,
                 description = description,
                 imageResId = productToEdit?.imageResId ?: R.drawable.ic_launcher_foreground, // Conservar imagen existente o usar una por defecto
                 averageRating = productToEdit?.averageRating ?: 0f
             )
-            
+
             scope.launch {
                 if (isEditing) productRepository.update(newOrUpdatedProduct) else productRepository.insert(newOrUpdatedProduct)
                 snackbarHostState.showSnackbar("Producto guardado con éxito")
@@ -379,7 +413,7 @@ private fun RewardEditScreen(navController: NavController, rewardId: String?, sn
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var pointsCost by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf(RewardType.DISCOUNT_PERCENTAGE) }
+    var type by remember { mutableStateOf(RewardType.DISCOUNT_AMOUNT) }
     var value by remember { mutableStateOf("") }
     var stock by remember { mutableStateOf("") }
     var productCode by remember { mutableStateOf("") }
