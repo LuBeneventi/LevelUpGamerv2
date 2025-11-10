@@ -38,7 +38,7 @@ La aplicación se divide en dos grandes áreas: la tienda para clientes y un pan
 
 ### Funcionalidades para Administradores
 
-*   **Panel de Administración:** Un área separada y protegida para la gestión de la tienda.
+*   **Panel de Administración:** Un área separada y protegida con un resumen de ventas (total vendido y pedidos pendientes).
 *   **Gestión de Productos (CRUD):** Crear, ver, editar y eliminar productos.
 *   **Gestión de Eventos (CRUD):** Crear, ver, editar y eliminar eventos comunitarios.
 *   **Gestión de Recompensas (CRUD):** Creación de recompensas dinámicas, definiendo tipo, valor, costo en puntos y stock.
