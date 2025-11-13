@@ -73,4 +73,7 @@ dependencies {
 
     // KSP
     ksp(libs.androidx.room.compiler)
+    //camara
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
 }

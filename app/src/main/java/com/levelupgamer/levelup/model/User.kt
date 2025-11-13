@@ -16,5 +16,6 @@ data class User(
     val passwordHash: String,
     val points: Int = 0,
     val referralCode: String = UUID.randomUUID().toString().take(6).uppercase(),
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val profileImageUri: String? = null
 )

@@ -9,9 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 data class RegisterUiState(
     val name: String = "",
@@ -44,7 +44,7 @@ class RegisterViewModel(private val userRepository: UserRepository) : ViewModel(
         viewModelScope.launch {
             val state = _uiState.value
             if (!isValid(state)) return@launch
-            
+
             var referringUser: User? = null
             if (state.referralCode.isNotBlank()) {
                 referringUser = userRepository.findByReferralCode(state.referralCode.uppercase())
@@ -66,13 +66,14 @@ class RegisterViewModel(private val userRepository: UserRepository) : ViewModel(
                 rut = state.rut,
                 birthDate = state.birthDate,
                 phone = state.phone,
-                passwordHash = state.password // En una app real, esto debería ser un hash
+                passwordHash = state.password, // En una app real, esto debería ser un hash
+                profileImageUri = null
             )
-            userRepository.insert(newUser)
+            userRepository.insert(newUser) // CORREGIDO
 
             referringUser?.let {
                 val updatedUser = it.copy(points = it.points + 100) // Recompensa por referir
-                userRepository.update(updatedUser)
+                userRepository.update(updatedUser) // CORREGIDO
             }
 
             _uiState.update { it.copy(registrationSuccess = true) }
@@ -131,10 +132,20 @@ class RegisterViewModel(private val userRepository: UserRepository) : ViewModel(
     private fun isOfLegalAge(birthDateStr: String): Boolean {
         if (birthDateStr.length != 8) return false
         return try {
-            val formatter = DateTimeFormatter.ofPattern("ddMMyyyy")
-            val birthDate = LocalDate.parse(birthDateStr, formatter)
-            val today = LocalDate.now()
-            ChronoUnit.YEARS.between(birthDate, today) >= 18
+            val sdf = SimpleDateFormat("ddMMyyyy", Locale.getDefault())
+            val birthDate = sdf.parse(birthDateStr) ?: return false
+
+            val dob = Calendar.getInstance()
+            dob.time = birthDate
+
+            val today = Calendar.getInstance()
+
+            var age = today.get(Calendar.YEAR) - dob.get(Calendar.YEAR)
+            if (today.get(Calendar.DAY_OF_YEAR) < dob.get(Calendar.DAY_OF_YEAR)) {
+                age--
+            }
+            
+            age >= 18
         } catch (e: Exception) {
             false
         }
